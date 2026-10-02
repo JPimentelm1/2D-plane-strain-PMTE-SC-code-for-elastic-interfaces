@@ -1,0 +1,39 @@
+0definicion: name_INP (abaqus job name)
+singlefibreInfMtrxM5el
+definicion: name_UMAT
+LEBIMdefplanaFFM.for
+definicion: num_iteraciones k
+35
+definicion: numero de iteraciones algoritmo biseccion
+40
+definicion: tolerancia de paro algoritmo biseccion, ej., <= 1 por cien
+5E-3
+definicion: definicion de interfases a estudiar
+NINTERFACE
+definicion: la primera carga o desplazamiento (su valor debe ser 1) 
+0.5e-5
+definicion: incremento
+0.5e-5
+definicion: nombre de la rutina de python para sacar los datos
+PMTESCsalDatos.py
+almacenamiento de Odb. Si pongo 0 no almacena. Si pongo 1 almacena todo. Si pongo 2 almacena solo el primer paso de k.
+1
+control en carga=1, control desplazamiento=0, para restar trabajo o no
+1
+factor por el que multiplicar la primera carga de rotura de LEBIM para que no rompa. aprox 0.9
+1.0
+los m pasos que quiero imponer, como maximo. Deberia ser 1 si quiero que sea captar un snap-back
+1
+este int es 1 si quiero aumentar la carga en cada k (1=propagacion grieta bajo carga constante), o 0 si empiezo desde 0 (0=si quiero snap-back)
+1
+numero de condiciones de contorno en desplazamiento a cambiar 
+2
+el orden, empezando por 1, de las CC en desplzamiento que queremos cambiar. Es el mismo orden que existe en el inp.
+y el coeficiente por el que se debe multiplicar la carga a cambiar. Esto es por si tenemos mas de una carga diferente, si no se pone 1.
+cada entero va con su real: int, float, int, float...
+3
+-1.
+4
+-1.
+Constante de multiplicacion de la distribucion aleatoria, p, 0<=p<=1:
+0.
