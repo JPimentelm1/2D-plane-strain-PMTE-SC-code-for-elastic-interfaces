@@ -349,6 +349,55 @@ def energy_file_CTO(file_name,pasok,pasom,pason,pasoj,newload,damageTen,thetad,g
 #-------------------------------------------------------
 #escribir fichero de energia para poder graficarlas crontol_file(file_name,lista,s,t): 
 #-------------------------------------------------------
+def energy_fileDCB_CTO(file_name,pasok,pasom,pason,pasoj,newload,damageTen):
+    control_file=open(file_name,'a')
+    #escribimos k m n j
+    control_file.write('%d\t %d\t %d\t %d\t'%(pasok,pasom,pason,pasoj))
+    #escribimos el numero de elementos que se rompen por criterio tensional
+    numeleten=len(damageTen)
+    control_file.write('%d\t'%(numeleten))
+    #escribimos el numero de elementos que se rompen por criterio energetico=0
+    NelemtsD=0
+    control_file.write('%d\t'%(NelemtsD))
+    #escribimos la carga o el desplazamiento impuesto
+    control_file.write(str(newload)+'\t')
+    #escribimos la energia interna y la energia interna mas disipada (total)
+    #como todavia no ha roto nada no se calcula
+    enerinterna=str(0.00)
+    enerTotal=str(0.00)
+    control_file.write(enerinterna+'\t')
+    control_file.write(enerTotal+'\n')   
+    control_file.close()    
+#-------------------------------------------------------
+#escribir fichero de energia para poder graficarlas crontol_file(file_name,lista,s,t): 
+#-------------------------------------------------------
+def energy_fileDCB(file_name,pasok,pasom,pason,pasoj,newload,damageTen,listaene):
+    control_file=open(file_name,'a')
+    #escribimos k m n j
+    control_file.write('%d\t %d\t %d\t %d\t'%(pasok,pasom,pason,pasoj))
+    #escribimos el numero de elementos que se rompen por criterio tensional
+    numeleten=len(damageTen)
+    control_file.write('%d\t'%(numeleten))
+    #escribimos el numero de elementos que se rompen por criterio energetico
+    NelemtsD=listaene[1]
+    control_file.write('%d\t'%(NelemtsD))
+    #escribimos la carga o el desplazamiento impuesto
+    control_file.write(str(newload)+'\t')
+    #escribimos la energia interna y la energia interna mas disipada (total)
+    enerinterna=str(listaene[5])
+    enerTotal=str(listaene[0])
+    control_file.write(enerinterna+'\t')
+    control_file.write(enerTotal+'\t')
+    control_file.write(str(listaene[-3])+'\t') #deltaPI
+    control_file.write(str(listaene[-2])+'\t') #delPI+delR
+    control_file.write(str(listaene[-1])+'\n') #deltaR
+    control_file.close()
+    #se debe tener en cuenta que los elementos dagnados segun el CE despues del 
+    #paso ii del paso j, es lo que propone la minimizacion de la energia segun el dagno
+    #pero al final de ese paso j la energia calculada es con los elementos
+    #dagnados del paso j anterior
+    #el dagno se actualiza en el siguiente paso     
+     
 def energy_file(file_name,pasok,pasom,pason,pasoj,newload,damageTen,listaene,thetad,gtotalt,sigmaxinf,deltaR,deltaPI,thetad2,gtr,gtl):
     control_file=open(file_name,'a')
     #escribimos k m n j

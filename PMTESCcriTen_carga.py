@@ -101,7 +101,7 @@ def PMTESCcriTen_carga(name_files, working_directory, carga, setnodeInt):
 	#la lista prueba no sirva para nada. Solo era para revisar la nueva UMAT
 	#se puede poner o quitar cuando queramos
     puntosintdamT=[]
-	#prueba=[]
+	 #prueba=[]
     pintegracion=len(path_SDV4)
     for k in range(pintegracion):
 		#la G en cada punto de integracion del criterio tensional

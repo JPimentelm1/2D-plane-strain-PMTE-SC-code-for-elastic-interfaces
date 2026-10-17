@@ -48,10 +48,10 @@ def PMTESCsalDatos_CdesplaDCB(name_files, working_directory, salida_datos3, step
     #||||||| 	   OBTENER RF1, RF2, U1, U2      |||||||
     #---------------------------------------------------
     
-    U21 = path_HisRegU21.historyOutputs['U1'].data[1][1] #U2 para la DCB
-    U22 = path_HisRegU22.historyOutputs['U1'].data[1][1] #U2 para la DCB
-    F21 = path_HisRegU21.historyOutputs['RF1'].data[1][1] #RF2 para la DCB
-    F22 = path_HisRegU22.historyOutputs['RF1'].data[1][1] #RF2 para la DCB
+    U21 = path_HisRegU21.historyOutputs['U2'].data[1][1] #U2 para la DCB
+    U22 = path_HisRegU22.historyOutputs['U2'].data[1][1] #U2 para la DCB
+    F21 = path_HisRegU21.historyOutputs['RF2'].data[1][1] #RF2 para la DCB
+    F22 = path_HisRegU22.historyOutputs['RF2'].data[1][1] #RF2 para la DCB
     
     #---------------------------------------------------
     #escribir el fichero de datos
@@ -152,6 +152,17 @@ def PMTESCsalDatos_SFLoad(name_files, working_directory, salida_datos3, stepk, s
     # Access the assembly and instance
     # Access the assembly and instance
     # assembly = odb.rootAssembly
+
+    # Loop through elements and get nodal coordinates
+    # for element in instance.elements:
+    #     node_labels = element.connectivity
+    #     for node_label in node_labels:
+    #         node = instance.nodes[node_label-1]  # Adjust for 0-based indexing
+    #         coordinates = node.coordinates
+    #         element_coords.append([element.label, coordinates[0], coordinates[1], \
+    #               math.sqrt(math.pow(coordinates[0],2)+math.pow(coordinates[1],2))])
+            # print(element.label, instance.name, coordinates[0], coordinates[1], \
+            #       math.sqrt(math.pow(coordinates[0],2)+math.pow(coordinates[1],2)))
     
     # Access the assembly instances
     instance1 = odb.rootAssembly.instances['INTERFACE1-1']
@@ -340,19 +351,16 @@ def PMTESCsalDatos_SFLoad(name_files, working_directory, salida_datos3, stepk, s
     for instanceName in myAssembly.instances.keys():
         instanceobj=myAssembly.instances.keys(instanceName)
     Ldregion = odb.rootAssembly.nodeSets['RFACE']
-    Ldfield=lastFrame.fieldOutputs['RT'].getSubset(region=Ldregion).getScalarField(componentLabel='RT1')
+    Ldfield=lastFrame.fieldOutputs['RF'].getScalarField(componentLabel='RF1',)
     Set_Ufield=lastFrame.fieldOutputs['U'].getScalarField(componentLabel='U1')
     Ldsetval=Ldfield.getSubset(region=Ldregion,position=NODAL);
+    RFfieldval=Ldsetval.values
     # references first item of the nodeset
     SetUfieldval=Set_Ufield.getSubset(region=Ldregion,position=NODAL).values[0].data
     Ufieldval=SetUfieldval
-    RFfieldval=Ldsetval.values
-    
     Rforce1=0.0
     for node in RFfieldval:
         Rforce1=Rforce1 + node.data
-        # print(Rforce1)
-            
     # Evaluate the applied average stress over the matrix loaded surface:
     ledge=500; #edge length, micrometer
     sigma_avg=Rforce1/ledge;
@@ -848,8 +856,8 @@ def PMTESCsalDatos_2SFLoad(name_files, working_directory, salida_datos3, stepk, 
     odb.close()
     return str(theta1tot), str(factorcoord[0][1]), sigma_avg, str(theta2tot), Gt1, Gt2
 
-def PMTESCsalDatos_2SFLoadV2(name_files, working_directory, salida_datos3, stepk, stepm, nnodosdamagEne, enertotal, nnodosdamagTen, nstep, xcf2, ycf2, damage_file):
-    with open(name_files + '.inp', 'r') as inp_file:
+def PMTESCsalDatos_2SFLoadV2(name_files, working_directory, salida_datos3, stepk, stepm, nnodosdamagEne, enertotal, nnodosdamagTen, nstep, xcf2, ycf2, damage_file, name_INP, GcEm):
+    with open(name_INP + '.inp', 'r') as inp_file:
         inp_lines = inp_file.readlines()
         inp_file.close()
         
@@ -1057,13 +1065,13 @@ def PMTESCsalDatos_2SFLoadV2(name_files, working_directory, salida_datos3, stepk
         # GtE=path_SDV12[value].data
         # G2E=path_SDV8[value].data
         # GcE=path_SDV6[value].data
-        psi_g=math.atan2(path_SDV14[value].data*(math.sqrt(1/xi)), path_SDV13[value].data)
-        GcE=float(GIc)*(1+(math.tan(psi_g*(1-lambdhs)))**2)*(mu_const/interfh); psi_gc=(math.pi)/(2*(1-lambdhs));
+        # psi_g=math.atan2(path_SDV14[value].data*(math.sqrt(1/xi)), path_SDV13[value].data)
+        # GcE=float(GIc)*(1+(math.tan(psi_g*(1-lambdhs)))**2)*(mu_const/interfh); psi_gc=(math.pi)/(2*(1-lambdhs));
         x=path_SDV10[value].data
         y=path_SDV11[value].data
         GtE=path_SDV12[value].data
         G2E=path_SDV8[value].data
-        if abs(psi_g)>=psi_gc: GcE=GIc*1E8
+        # if abs(psi_g)>=psi_gc: GcE=GIc*1E8
         # sigmarr=path_SDV13[value].data
         # sigmart=path_SDV14[value].data
         
@@ -1071,49 +1079,53 @@ def PMTESCsalDatos_2SFLoadV2(name_files, working_directory, salida_datos3, stepk
         if NeL2.endswith('_INTERFACE-1'):
             if y >= 0 and x >= 0:
                 thetad1=(math.atan(y/x)*(180/(math.pi)))
-                ERRf1_array.append([thetad1, G2E, GtE, GcE])
+                ERRf1_array.append([thetad1, G2E, GtE])
                 # Gt1v.append(Gtot)
                 # factorcoord.append([Gtot, GcT])
             elif y >= 0  and x < 0:
                 thetad1=float(180) - (math.atan(y/abs(x))*(180/(math.pi)))
-                ERRf1_array.append([thetad1, G2E, GtE, GcE])
+                ERRf1_array.append([thetad1, G2E, GtE])
                 # Gt2v.append(Gtot)
                 # factorcoord.append([Gtot, GcT])
             if y < 0 and x >= 0:
                 thetad1=float(-1)*math.atan(abs(y)/x)*(180/(math.pi))
-                ERRf1_array.append([thetad1, G2E, GtE, GcE])
+                ERRf1_array.append([thetad1, G2E, GtE])
             elif y < 0  and x < 0:
                 thetad1=float(-180) + (math.atan(abs(y)/abs(x))*(180/(math.pi)))
-                ERRf1_array.append([thetad1, G2E, GtE, GcE])
+                ERRf1_array.append([thetad1, G2E, GtE])
         if NeL2.endswith('_INTERFACE-2') and (x-xcf2)>0:
             if (y-ycf2) >= 0 :
                 thetad2=math.atan((y-ycf2)/(x-xcf2))*(180/(math.pi))
-                ERRf2_array.append([thetad2, G2E, GtE, GcE])
+                ERRf2_array.append([thetad2, G2E, GtE])
                 # Gt1v.append(Gtot)
                 # factorcoord.append([Gtot, GcT])
             elif (y-ycf2) < 0:
                 thetad2=float(-1)*math.atan(abs(y-ycf2)/(x-xcf2))*(180/(math.pi))
-                ERRf2_array.append([thetad2, G2E, GtE, GcE])
+                ERRf2_array.append([thetad2, G2E, GtE])
                 # Gt2v.append(Gtot)
                 # factorcoord.append([Gtot, GcT])
         if NeL2.endswith('_INTERFACE-2') and (x-xcf2)<0:
             if (y-ycf2) >= 0 :
                 thetad2=float(180) - math.atan((y-ycf2)/abs(x-xcf2))*(180/(math.pi))
-                ERRf2_array.append([thetad2, G2E, GtE, GcE])
+                ERRf2_array.append([thetad2, G2E, GtE])
 
             elif (y-ycf2) < 0:
                 thetad2=float(-180) + math.atan(abs(y-ycf2)/abs(x-xcf2))*(180/(math.pi))
-                ERRf2_array.append([thetad2, G2E, GtE, GcE])
+                ERRf2_array.append([thetad2, G2E, GtE])
 
     # Sort the ERR lists in ascending order of thetad:
     ERRf1_array.sort(key=lambda ERRf1_array:ERRf1_array[:][0], reverse=False)
     ERRf2_array.sort(key=lambda ERRf2_array:ERRf2_array[:][0], reverse=False)
     ERRf1np = np.array(ERRf1_array); ERRf2np = np.array(ERRf2_array);
+    GcPsif1_np=np.array(GcEm[:][0]); GcPsif2_np=np.array(GcEm[:][-1]);
+    
+    interf1ip_varsn = np.concatenate([ERRf1np, GcPsif1_np[:,-1].reshape(len(GcPsif1_np), 1)], axis=1)
+    interf2ip_varsn = np.concatenate([ERRf2np, GcPsif2_np[:,-1].reshape(len(GcPsif2_np), 1)], axis=1)
     # Save the arrays as text files:
         # Specify the format for each column
-    header_fmt = ['%.8e', '%.8e', '%.8e', '%.8e']
-    np.savetxt(working_directory_FFM+'\\'+name_files+'_ERRf1.txt', ERRf1np, fmt=header_fmt, delimiter='\t')
-    np.savetxt(working_directory_FFM+'\\'+name_files+'_ERRf2.txt', ERRf2np, fmt=header_fmt, delimiter='\t')
+    header_fmt = ['%.10e', '%.9e', '%.9e', '%.9e']
+    np.savetxt(working_directory_FFM+'\\'+name_files+'_ERRf1.txt', interf1ip_varsn, fmt=header_fmt, delimiter='\t')
+    np.savetxt(working_directory_FFM+'\\'+name_files+'_ERRf2.txt', interf2ip_varsn, fmt=header_fmt, delimiter='\t')
     
     # Define the radius R, and the search tolerance, toler:
     R_o = 7.51
@@ -1226,9 +1238,12 @@ def PMTESCsalDatos_2SFLoadV2(name_files, working_directory, salida_datos3, stepk
     thetaURnp = np.array(thetaUR_arr); thetaURf2np = np.array(thetaUR_f2arr)
     # Save the array into a text file:
         # Specify the format for each column
-    fmt = ['%.8e', '%.8e']
-    np.savetxt(working_directory_FFM+'\\'+name_files+'_thetaURdeltaf1.txt', thetaURnp, fmt=fmt, delimiter='\t')
-    np.savetxt(working_directory_FFM+'\\'+name_files+'_thetaURdeltaf2.txt', thetaURf2np, fmt=fmt, delimiter='\t')
+    fmt = ['%.10e', '%.8e']
+    # print(len(thetaURnp))
+    if len(thetaURnp)!=0:
+        np.savetxt(working_directory_FFM+'\\'+name_files+'_thetaURdeltaf1.txt', thetaURnp, fmt=fmt, delimiter='\t')
+        np.savetxt(working_directory_FFM+'\\'+name_files+'_thetaURdeltaf2.txt', thetaURf2np, fmt=fmt, delimiter='\t')
+    
     
     key_HisReg = odb.steps[key_step[-1]].historyRegions.keys()
     hisreglen=len(key_HisReg)
