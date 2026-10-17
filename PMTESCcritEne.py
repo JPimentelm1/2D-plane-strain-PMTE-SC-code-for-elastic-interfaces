@@ -10,15 +10,13 @@ from os import chdir, path, mkdir
 from odbAccess import*
 from pickle import dump, load
 from copy import deepcopy
-import sys
 import numpy as np
 import math
-# Redirect stdout to the command prompt
-sys.stdout = sys.__stdout__
 
-def PMTESCcritEne(name_files, working_directory, setnodeInt, control, elementosTen, dicc_NeL_E, nstart):
+def PMTESCcritEne(name_files, working_directory, setnodeInt, control, elementosTen, dicc_NeL_E, working_directoryFFM):
 
-    working_directory_Ene=working_directory+'/FFM_optimizada01/criterioEne'
+
+    working_directory_Ene=working_directoryFFM+'/criterioEne'
     chdir(working_directory)
     odb = openOdb(name_files + '.odb')
     Eset=setnodeInt
@@ -147,14 +145,55 @@ def PMTESCcritEne(name_files, working_directory, setnodeInt, control, elementosT
     ##y escribo en archivoEneElements_paso_i.txt
     ##NeG(lista), NeL(lista), GelemReal(dicc), GelemUndamge(dicc), GelemDamge(dicc), GcE(lista), damage(dicc)
     ##esto es para despues el paso ii y no escribo todos los elementos de interfases
-        
+    
     eleDamagei=[]
-    for elem in elementosTen:
-          archivoEneEle.write('%d %s %e %e %e %e %e\n'
-      		% (elem[0],elem[1],dicc_NeL[elem[1]][3],dicc_NeL[elem[1]][4],dicc_NeL[elem[1]][5],elem[2],dicc_NeL[elem[1]][6]))	
-          eleDamagei.append([elem[0],elem[1],dicc_NeL[elem[1]][3],dicc_NeL[elem[1]][4],dicc_NeL[elem[1]][5],elem[2],dicc_NeL[elem[1]][6],elem[3]])
-          # eleDamagei.append(NeLoc, NeG, GrealPI*jacobElm, GundamagePI*jacobElm, GdamagePI*jacobElm, GcElem, damage_var)
-          # SON CORRECTOS LOS INDICES EN ESTA LISTA
+    if not elementosTen:
+        print('Stress criterion list is empty')
+        
+    else:
+        for elem in elementosTen:
+             try:
+                 val0 = elem[0]
+                 val1 = elem[1]
+                 val2 = dicc_NeL[elem[1]][3]
+                 val3 = dicc_NeL[elem[1]][4]
+                 val4 = dicc_NeL[elem[1]][5]
+                 val5 = elem[2]
+                 val6 = dicc_NeL[elem[1]][6]
+                 val7 = elem[3]
+                 eleDamagei.append([val0, val1, val2, val3, val4, val5, val6, val7])
+             except IndexError as e:
+                 print('IndexError: %s' % (e,))
+                 print('  elem = %s' % (repr(elem),))
+                 print('  len(elem) = %d' % (len(elem),))
+                 if len(elem) > 1 and elem[1] in dicc_NeL:
+                     print('  dicc_NeL[elem[1]] = %s' % (repr(dicc_NeL[elem[1]]),))
+                     print('  len(dicc_NeL[elem[1]]) = %d' % (len(dicc_NeL[elem[1]]),))
+                 else:
+                     print('  elem[1]=%s not a key in dicc_NeL' % (repr(elem[1]) if len(elem) > 1 else 'N/A',))
+             
+                 checks = [
+                     ('elem[0]',                lambda: elem[0]),
+                     ('elem[1]',                lambda: elem[1]),
+                     ('dicc_NeL[elem[1]][3]',   lambda: dicc_NeL[elem[1]][3]),
+                     ('dicc_NeL[elem[1]][4]',   lambda: dicc_NeL[elem[1]][4]),
+                     ('dicc_NeL[elem[1]][5]',   lambda: dicc_NeL[elem[1]][5]),
+                     ('elem[2]',                lambda: elem[2]),
+                     ('dicc_NeL[elem[1]][6]',   lambda: dicc_NeL[elem[1]][6]),
+                     ('elem[3]',                lambda: elem[3]),
+                 ]
+                 for name, func in checks:
+                     try:
+                         func()
+                     except IndexError:
+                         print('  FAILS (IndexError): %s' % (name,))
+                     except KeyError:
+                         print('  FAILS (KeyError): %s' % (name,))
+             archivoEneEle.write('%d %s %e %e %e %e %e\n'
+         		 % (elem[0],elem[1],dicc_NeL[elem[1]][3],dicc_NeL[elem[1]][4],dicc_NeL[elem[1]][5],elem[2],dicc_NeL[elem[1]][6]))	
+             # eleDamagei.append([elem[0],elem[1],dicc_NeL[elem[1]][3],dicc_NeL[elem[1]][4],dicc_NeL[elem[1]][5],elem[2],dicc_NeL[elem[1]][6],elem[3]])
+             # eleDamagei.append(NeLoc, NeG, GrealPI*jacobElm, GundamagePI*jacobElm, GdamagePI*jacobElm, GcElem, damage_var)
+             # SON CORRECTOS LOS INDICES EN ESTA LISTA
     archivoEneEle.close()
     
     #%%
@@ -164,7 +203,7 @@ def PMTESCcritEne(name_files, working_directory, setnodeInt, control, elementosT
     #tomamos 'ALLSE' en lugar de 'ALLIE' porque estrictamente es la energia de deformacion
     #pero podemos replantearnos poner la otra por el hourglassing
     if control==1: #load control
-    	enerHtotal = -(eneDefSolidos+sumaenerinter)
+    	enerHtotal = eneDefSolidos+sumaenerinter-Work
     else: #fixed-grips loading
     	enerHtotal = eneDefSolidos+sumaenerinter
     
@@ -187,8 +226,6 @@ def PMTESCcritEne(name_files, working_directory, setnodeInt, control, elementosT
     #		% (eneCompr))
     archivoEne.close()
     odb.close()
-    print('Total potential energy: {} [N-micrometer] \n Debond angle: {}, deg.'.format(enerHtotal, thet1))
-    print('Interface stored strain energy: {} N-micrometer'.format(sumaenerinter))
     return eleDamagei, enerHtotal, thet1
 
 def PMTESCcritEneMF(name_files, working_directory, setnodeInt, control, elementosTen, dicc_NeL_E, nstart):
